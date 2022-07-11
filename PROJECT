@@ -1,0 +1,6 @@
+domain: github.com
+layout:
+- go.kubebuilder.io/v3
+projectName: calico-egress
+repo: github.com/sriramy/calico-egress
+version: "3"
