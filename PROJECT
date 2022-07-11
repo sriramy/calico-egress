@@ -3,4 +3,23 @@ layout:
 - go.kubebuilder.io/v3
 projectName: calico-egress
 repo: github.com/sriramy/calico-egress
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: github.com
+  group: egress
+  kind: EgressIPPool
+  path: github.com/sriramy/calico-egress/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: github.com
+  group: egress
+  kind: Egress
+  path: github.com/sriramy/calico-egress/api/v1
+  version: v1
 version: "3"

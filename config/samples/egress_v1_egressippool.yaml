@@ -1,0 +1,6 @@
+apiVersion: egress.github.com/v1
+kind: EgressIPPool
+metadata:
+  name: egressippool-sample
+spec:
+  # TODO(user): Add fields here

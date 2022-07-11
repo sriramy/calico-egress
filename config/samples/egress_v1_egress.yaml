@@ -1,0 +1,6 @@
+apiVersion: egress.github.com/v1
+kind: Egress
+metadata:
+  name: egress-sample
+spec:
+  # TODO(user): Add fields here
