@@ -28,8 +28,8 @@ type EgressIPPoolSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of EgressIPPool. Edit egressippool_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Cidr         string `json:"cidr,omitempty"`
+	NodeSelector string `json:"nodeSelector,omitempty"`
 }
 
 // EgressIPPoolStatus defines the observed state of EgressIPPool
