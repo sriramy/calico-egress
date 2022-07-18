@@ -28,26 +28,18 @@ type EgressIPPoolSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Cidr         string `json:"cidr,omitempty"`
-	NodeSelector string `json:"nodeSelector,omitempty"`
-}
-
-// EgressIPPoolStatus defines the observed state of EgressIPPool
-type EgressIPPoolStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Cidr         string `json:"cidr,omitempty" validate:"net"`
+	NodeSelector string `json:"nodeSelector,omitempty" validate:"omitempty,selector"`
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
 
 // EgressIPPool is the Schema for the egressippools API
 type EgressIPPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   EgressIPPoolSpec   `json:"spec,omitempty"`
-	Status EgressIPPoolStatus `json:"status,omitempty"`
+	Spec EgressIPPoolSpec `json:"spec,omitempty"`
 }
 
 //+kubebuilder:object:root=true

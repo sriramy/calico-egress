@@ -6,7 +6,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed Jul 13 14:15:44 2022
+# Make data base, printed on Mon Jul 18 10:31:35 2022
 
 # Variables
 
@@ -15,7 +15,7 @@ KUSTOMIZE_VERSION = v3.8.7
 # environment
 LC_ALL = C
 # environment
-WSLENV = VSCODE_WSL_EXT_LOCATION/up
+WSLENV = VSCODE_WSL_EXT_LOCATION/up:VSCODE_SERVER_TAR/up
 # environment
 XCLUSTER_WORKSPACE = /home/sriramy/xc/workspace
 # environment
@@ -40,8 +40,6 @@ PWD = /home/sriramy/code/calico-egress
 XDG_DATA_DIRS = /usr/share/gnome:/usr/local/share:/usr/share:/var/lib/snapd/desktop
 # automatic
 ^D = $(patsubst %/,%,$(dir $^))
-# environment
-VSCODE_LOG_STACK = false
 # automatic
 %F = $(notdir $%)
 # environment
@@ -61,8 +59,6 @@ xtermopt = -fs 12
 # makefile
 CURDIR := /home/sriramy/code/calico-egress
 # environment
-VSCODE_PIPE_LOGGING = true
-# environment
 APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
 # environment
 LESSOPEN = | /usr/bin/lesspipe %s
@@ -78,8 +74,6 @@ MFLAGS = -pqrR
 MAKEFILE_LIST := Makefile
 # automatic
 @F = $(notdir $@)
-# environment
-VSCODE_VERBOSE_LOGGING = true
 # automatic
 ?D = $(patsubst %/,%,$(dir $?))
 # environment
@@ -107,13 +101,11 @@ MAKELEVEL := 0
 # default
 MAKE = $(MAKE_COMMAND)
 # environment
-PATH = /home/sriramy/.vscode-server/bin/30d9c6cd9483b2cc586687151bcbcd635f373630/bin/remote-cli:/usr/local/go/bin:/home/sriramy/go//bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/c/Program Files/PuTTY/:/mnt/c/Program Files/dotnet/:/mnt/c/Users/SriramYagnaraman/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/SriramYagnaraman/AppData/Local/Programs/Microsoft VS Code/bin:/snap/bin:/home/sriramy/.dotnet/tools
+PATH = /home/sriramy/.vscode-server/bin/b06ae3b2d2dbfe28bca3134cc6be65935cdfea6a/bin/remote-cli:/usr/local/go/bin:/home/sriramy/go//bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/c/Program Files/PuTTY/:/mnt/c/Program Files/dotnet/:/mnt/c/Users/SriramYagnaraman/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/SriramYagnaraman/AppData/Local/Programs/Microsoft VS Code/bin:/snap/bin:/home/sriramy/.dotnet/tools
 # makefile (from 'Makefile', line 111)
 KUSTOMIZE = $(LOCALBIN)/kustomize
 # default
 MAKEFILES := 
-# environment
-MOTD_SHOWN = update-motd
 # automatic
 ^F = $(notdir $^)
 # environment
@@ -125,15 +117,15 @@ GOBIN = $(shell go env GOPATH)/bin
 # makefile (from 'Makefile', line 117)
 CONTROLLER_TOOLS_VERSION = v0.9.0
 # environment
-VSCODE_LOG_NATIVE = false
-# environment
 LESSCLOSE = /usr/bin/lesspipe %s %s
 # automatic
 ?F = $(notdir $?)
 # environment
 NAME = DESKTOP-D5JSVGC
+# environment
+VSCODE_SERVER_TAR = /mnt/c/Users/SRIRAM~1/AppData/Local/Temp/vscode-remote-wsl/b06ae3b2d2dbfe28bca3134cc6be65935cdfea6a/vscode-server-stable-linux-x64.tar.gz
 # makefile (from 'Makefile', line 3)
-IMG = controller:latest
+IMG = registry.nordix.org/cloud-native/calico-egress-controller:latest
 # environment
 HOSTTYPE = x86_64
 # environment
@@ -141,7 +133,7 @@ LS_COLORS = rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:
 # automatic
 +F = $(notdir $+)
 # environment
-WSL_INTEROP = /run/WSL/11_interop
+WSL_INTEROP = /run/WSL/473_interop
 # 'override' directive
 GNUMAKEFLAGS := 
 # environment
@@ -153,7 +145,7 @@ VSCODE_WSL_EXT_LOCATION = /mnt/c/Users/SriramYagnaraman/.vscode/extensions/ms-vs
 # environment
 log = /tmp/sriramy-xcluster.log
 # environment
-DISPLAY = 172.30.0.1:0
+DISPLAY = 172.26.96.1:0
 # environment
 USER = sriramy
 # default
@@ -161,11 +153,9 @@ MAKE_VERSION := 4.3
 # 'override' directive
 .SHELLSTATUS := 0
 # environment
-VSCODE_EXTHOST_WILL_SEND_SOCKET = true
+_ = /home/sriramy/.vscode-server/bin/b06ae3b2d2dbfe28bca3134cc6be65935cdfea6a/node
 # environment
-_ = /home/sriramy/.vscode-server/bin/30d9c6cd9483b2cc586687151bcbcd635f373630/node
-# environment
-VSCODE_IPC_HOOK_CLI = /tmp/vscode-ipc-c2203de9-a753-4e0e-9470-0a9f164526bf.sock
+VSCODE_IPC_HOOK_CLI = /tmp/vscode-ipc-dc6bb867-01d0-4980-9490-1baf51ad9e37.sock
 # environment
 GOMODCACHE = /home/sriramy/go/pkg/mod
 # environment
@@ -174,6 +164,8 @@ VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
 HOME = /home/sriramy
 # makefile (from 'Makefile', line 113)
 ENVTEST = $(LOCALBIN)/setup-envtest
+# environment
+ELECTRON_RUN_AS_NODE = 1
 # environment
 TERM = xterm-256color
 # environment
@@ -191,7 +183,7 @@ WSL_DISTRO_NAME = Ubuntu-20.04
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync check-symlink load
 # variable set hash-table stats:
-# Load=90/1024=9%, Rehash=0, Collisions=6/198=3%
+# Load=86/1024=8%, Rehash=0, Collisions=5/194=3%
 
 # Pattern-specific Variable Values
 
@@ -220,39 +212,20 @@ deploy: manifests kustomize
 
 /home/sriramy/code/calico-egress/bin:
 #  Implicit rule search has not been done.
-#  Last modified 2022-07-12 11:18:11.814997695
+#  Last modified 2022-07-14 07:22:37.597736968
 #  File has been updated.
 #  Successfully updated.
 #  recipe to execute (from 'Makefile', line 108):
 	mkdir -p $(LOCALBIN)
 
-# 'override' directive
-generate: .SHELLSTATUS := 0
 generate: controller-gen
 #  Phony target (prerequisite of .PHONY).
 #  Implicit rule search has not been done.
-#  Implicit/static pattern stem: ''
 #  File does not exist.
 #  File has been updated.
 #  Needs to be updated (-q is set).
-# automatic
-# @ := generate
-# automatic
-# * := 
-# automatic
-# < := controller-gen
-# automatic
-# + := controller-gen
-# automatic
-# % := 
-# automatic
-# ^ := controller-gen
-# automatic
-# ? := controller-gen
-# automatic
-# | := 
 # variable set hash-table stats:
-# Load=9/32=28%, Rehash=0, Collisions=2/17=12%
+# Load=0/32=0%, Rehash=0, Collisions=0/8=0%
 #  recipe to execute (from 'Makefile', line 48):
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
@@ -274,11 +247,10 @@ undeploy:
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-07-11 07:51:46.148262527
+#  Last modified 2022-07-14 07:14:24.077742402
 #  File has been updated.
 #  Successfully updated.
 
- 
 kustomize: /home/sriramy/code/calico-egress/bin/kustomize
 #  Phony target (prerequisite of .PHONY).
 #  Implicit rule search has not been done.
@@ -293,11 +265,33 @@ uninstall: manifests kustomize
 #  recipe to execute (from 'Makefile', line 92):
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
+# 'override' directive
+/home/sriramy/code/calico-egress/bin/controller-gen: .SHELLSTATUS := 0
 /home/sriramy/code/calico-egress/bin/controller-gen: /home/sriramy/code/calico-egress/bin
 #  Implicit rule search has not been done.
-#  Last modified 2022-07-12 11:19:33.973246503
+#  Implicit/static pattern stem: ''
+#  Last modified 2022-07-14 07:13:37.449921531
 #  File has been updated.
-#  Successfully updated.
+#  Needs to be updated (-q is set).
+# automatic
+# @ := /home/sriramy/code/calico-egress/bin/controller-gen
+# automatic
+ 
+# * := 
+# automatic
+# < := /home/sriramy/code/calico-egress/bin
+# automatic
+# + := /home/sriramy/code/calico-egress/bin
+# automatic
+# % := 
+# automatic
+# ^ := /home/sriramy/code/calico-egress/bin
+# automatic
+# ? := /home/sriramy/code/calico-egress/bin
+# automatic
+# | := 
+# variable set hash-table stats:
+# Load=9/32=28%, Rehash=0, Collisions=2/17=12%
 #  recipe to execute (from 'Makefile', line 128):
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
@@ -312,7 +306,9 @@ controller-gen: /home/sriramy/code/calico-egress/bin/controller-gen
 #  Implicit rule search has not been done.
 #  File does not exist.
 #  File has been updated.
-#  Successfully updated.
+#  Needs to be updated (-q is set).
+# variable set hash-table stats:
+# Load=0/32=0%, Rehash=0, Collisions=0/8=0%
 
 fmt:
 #  Phony target (prerequisite of .PHONY).
@@ -445,6 +441,6 @@ docker-build: test
 # strcache performance: lookups = 155 / hit rate = 70%
 # hash-table stats:
 # Load=46/8192=1%, Rehash=0, Collisions=0/155=0%
-# Finished Make data base on Wed Jul 13 14:15:44 2022
+# Finished Make data base on Mon Jul 18 10:31:35 2022
 
  

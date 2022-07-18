@@ -1,0 +1,29 @@
+#! /bin/sh
+
+. /etc/profile
+. /usr/lib/network-topology.sh
+
+vm() {
+	sysctl -w net.ipv4.conf.all.arp_announce=2
+	sysctl -w net.ipv4.conf.all.arp_ignore=1
+	sysctl -w net.ipv4.ip_nonlocal_bind=1
+	sysctl -w net.ipv6.ip_nonlocal_bind=1
+	sysctl -w net.ipv4.conf.all.proxy_arp=0
+}
+
+router() {
+	return 0
+}
+
+tester() {
+	return 0
+}
+
+case $(hostname) in
+    vm-0*)
+        vm;;
+    vm-20*)
+        router;;
+    vm-22*)
+        tester;;
+esac

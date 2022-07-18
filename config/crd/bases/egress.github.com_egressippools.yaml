@@ -40,11 +40,6 @@ spec:
               nodeSelector:
                 type: string
             type: object
-          status:
-            description: EgressIPPoolStatus defines the observed state of EgressIPPool
-            type: object
         type: object
     served: true
     storage: true
-    subresources:
-      status: {}

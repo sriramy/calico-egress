@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	egressv1 "github.com/sriramy/calico-egress/api/v1"
+	"github.com/vishvananda/netlink"
 )
 
 // EgressReconciler reconciles a Egress object
@@ -59,4 +60,18 @@ func (r *EgressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&egressv1.Egress{}).
 		Complete(r)
+}
+
+func (r *EgressReconciler) ensureDummyDevice(deviceName string) (netlink.Link, error) {
+	link, err := netlink.LinkByName(deviceName)
+	if err == nil {
+		return link, nil
+	}
+	dummy := &netlink.Dummy{
+		LinkAttrs: netlink.LinkAttrs{Name: deviceName},
+	}
+	if err = netlink.LinkAdd(dummy); err != nil {
+		return nil, err
+	}
+	return dummy, nil
 }
