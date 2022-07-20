@@ -78,7 +78,6 @@ test_start() {
 	. ./network-topology/Envsettings
 
 	# Test with k8s-xcluster;
-	echo "$XOVLS" | grep -q private-reg && unset XOVLS
 	__image=$XCLUSTER_HOME/hd-k8s-xcluster-$__k8sver.img
 	test -r $__image || __image=$XCLUSTER_HOME/hd-k8s-xcluster.img
 	export __image
