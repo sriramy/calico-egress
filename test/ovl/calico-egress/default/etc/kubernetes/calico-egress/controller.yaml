@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calico-egress-controller
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: calico-egress-controller
+  template:
+    metadata:
+      labels:
+        app: calico-egress-controller
+    spec:
+      serviceAccount: default
+      nodeSelector:
+        kubernetes.io/hostname: vm-002
+      containers:
+      - name: calico-egress-controller
+        imagePullPolicy: Always
+        image: registry.nordix.org/cloud-native/calico-egress-controller:latest
+        securityContext:
+          privileged: true

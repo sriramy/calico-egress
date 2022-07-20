@@ -86,10 +86,13 @@ test_start() {
 	export xcluster_FIRST_WORKER=2
 
 	$($XCLUSTER ovld images)/images.sh lreg_preload k8s-cni-calico
-	xcluster_start k8s-cni-calico iptools network-topology usrsctp calico-egress $@
+	xcluster_start k8s-cni-calico iptools network-topology usrsctp cert-manager calico-egress $@
 
 	otc 1 check_namespaces
 	otc 1 check_nodes
+	otc 1 deploy_cert_manager
+	otc 1 deploy_controller
+
 	otc 221 start_server
 
 	otc 201 vip_ecmp_route
