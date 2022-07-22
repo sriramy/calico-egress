@@ -24,29 +24,30 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	egressv1 "github.com/sriramy/calico-egress/api/v1"
+	egressv1 "github.com/sriramy/calico-egress/pkg/api/v1"
+	"github.com/vishvananda/netlink"
 )
 
-// EgressIPPoolReconciler reconciles a EgressIPPool object
-type EgressIPPoolReconciler struct {
+// EgressReconciler reconciles a Egress object
+type EgressReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=egress.github.com,resources=egressippools,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=egress.github.com,resources=egressippools/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=egress.github.com,resources=egressippools/finalizers,verbs=update
+//+kubebuilder:rbac:groups=egress.github.com,resources=egresses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=egress.github.com,resources=egresses/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=egress.github.com,resources=egresses/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the EgressIPPool object against the actual cluster state, and then
+// the Egress object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
-func (r *EgressIPPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
@@ -55,8 +56,22 @@ func (r *EgressIPPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *EgressIPPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *EgressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&egressv1.EgressIPPool{}).
+		For(&egressv1.Egress{}).
 		Complete(r)
+}
+
+func (r *EgressReconciler) ensureDummyDevice(deviceName string) (netlink.Link, error) {
+	link, err := netlink.LinkByName(deviceName)
+	if err == nil {
+		return link, nil
+	}
+	dummy := &netlink.Dummy{
+		LinkAttrs: netlink.LinkAttrs{Name: deviceName},
+	}
+	if err = netlink.LinkAdd(dummy); err != nil {
+		return nil, err
+	}
+	return dummy, nil
 }

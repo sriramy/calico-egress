@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	egressv1 "github.com/sriramy/calico-egress/api/v1"
+	egressv1 "github.com/sriramy/calico-egress/pkg/api/v1"
 	//+kubebuilder:scaffold:imports
 )
 

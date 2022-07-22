@@ -25,11 +25,21 @@ import (
 
 // EgressSpec defines the desired state of Egress
 type EgressSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Egress. Edit egress_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Select Pods matched by this selector. If set with NamespaceSelector,
+	// Pods are matched from Namespaces matched by the NamespaceSelector;
+	// otherwise, Pods are matched from all Namespaces.
+	// +optional
+	PodSelector *metav1.LabelSelector `json:"podSelector,omitempty"`
+	// Select all Pods from Namespaces matched by this selector. If set with
+	// PodSelector, Pods are matched from Namespaces matched by the
+	// NamespaceSelector.
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+	// EgressIP specifies the SNAT IP address for the selected workloads.
+	// If ExternalIPPool is empty, it must be specified manually.
+	// If ExternalIPPool is non-empty, it can be empty and will be assigned by Antrea automatically.
+	// If both ExternalIPPool and EgressIP are non-empty, the IP must be in the pool.
+	EgressIP string `json:"egressIP,omitempty"`
 }
 
 // EgressStatus defines the observed state of Egress

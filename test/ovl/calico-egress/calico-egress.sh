@@ -7,6 +7,7 @@
 ## Commands;
 ##
 
+topdir=$(git rev-parse --show-toplevel)
 prg=$(basename $0)
 dir=$(dirname $0); dir=$(readlink -f $dir)
 me=$dir/$prg
@@ -91,7 +92,10 @@ test_start() {
 	otc 1 check_namespaces
 	otc 1 check_nodes
 	otc 1 deploy_cert_manager
-	otc 1 deploy_controller
+
+	# install CRDs and controller
+	make -C $topdir install
+	make -C $topdir deploy
 
 	otc 221 start_server
 

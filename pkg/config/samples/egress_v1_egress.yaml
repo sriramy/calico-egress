@@ -3,4 +3,6 @@ kind: Egress
 metadata:
   name: egress-sample
 spec:
-  # TODO(user): Add fields here
+  podSelector: 
+    app: usrsctp-server
+  egressIP: 13.0.0.2

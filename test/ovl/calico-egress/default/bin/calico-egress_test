@@ -56,12 +56,6 @@ cmd_tcase_deploy_cert_manager() {
 	test_deployment cert-manager-webhook
 }
 
-cmd_tcase_deploy_controller() {
-	tcase "Deploy Calico egress SNAT controller"
-	apply_k8s $yamld
-	test_deployment calico-egress-controller 180
-}
-
 cmd_tcase_deploy_kpng_pods() {
 	tcase "Deploy KPNG pods"
 	apply_k8s $kpng_yamld
