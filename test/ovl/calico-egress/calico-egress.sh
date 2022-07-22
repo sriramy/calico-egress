@@ -94,6 +94,8 @@ test_start() {
 	otc 1 deploy_cert_manager
 
 	# install CRDs and controller
+	make -C $topdir generate
+	make -C $topdir docker-build
 	make -C $topdir install
 	make -C $topdir deploy
 

@@ -1,13 +1,14 @@
-# permissions for end users to edit egressippools.
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: egressippool-editor-role
+  creationTimestamp: null
+  name: manager-role
 rules:
 - apiGroups:
   - egress.github.com
   resources:
-  - egressippools
+  - egresses
   verbs:
   - create
   - delete
@@ -19,6 +20,15 @@ rules:
 - apiGroups:
   - egress.github.com
   resources:
-  - egressippools/status
+  - egresses/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - egress.github.com
+  resources:
+  - egresses/status
   verbs:
   - get
+  - patch
+  - update
+  

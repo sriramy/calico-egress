@@ -36,9 +36,6 @@ type EgressSpec struct {
 	// +optional
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 	// EgressIP specifies the SNAT IP address for the selected workloads.
-	// If ExternalIPPool is empty, it must be specified manually.
-	// If ExternalIPPool is non-empty, it can be empty and will be assigned by Antrea automatically.
-	// If both ExternalIPPool and EgressIP are non-empty, the IP must be in the pool.
 	EgressIP string `json:"egressIP,omitempty"`
 }
 
