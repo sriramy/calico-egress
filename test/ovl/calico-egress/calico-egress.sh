@@ -37,6 +37,7 @@ dbg() {
 ##    Print environment.
 ##
 cmd_env() {
+	test -n "$__tag" || __tag="registry.nordix.org/cloud-native/calico-egress-controller:latest"
 
 	if test "$cmd" = "env"; then
 		set | grep -E '^(__.*)='
@@ -86,7 +87,6 @@ test_start() {
 	export XCTEST_HOOK=$($XCLUSTER ovld k8s-xcluster)/xctest-hook
 	export xcluster_FIRST_WORKER=2
 
-	$($XCLUSTER ovld images)/images.sh lreg_preload k8s-cni-calico
 	xcluster_start k8s-cni-calico iptools network-topology usrsctp cert-manager calico-egress $@
 
 	otc 1 check_namespaces
@@ -94,8 +94,6 @@ test_start() {
 	otc 1 deploy_cert_manager
 
 	# install CRDs and controller
-	make -C $topdir generate
-	make -C $topdir docker-build
 	make -C $topdir install
 	make -C $topdir deploy
 
@@ -121,6 +119,18 @@ test_start() {
 
 	rcp 2 /var/log/*.pcap captures/
 	rcp 221 /var/log/*.pcap captures/
+}
+
+##   build [--tag=registry.nordix.org/cloud-native/calico-egress-controller:latest]
+##     Generate code and manifests
+##     Create the docker image and upload it to the local registry.
+##
+cmd_build() {
+	cmd_env
+	make -C $topdir manifests
+	make -C $topdir generate
+	make -C $topdir docker-build
+	$($XCLUSTER ovld images)/images.sh lreg_upload --strip-host $__tag
 }
 
 . $($XCLUSTER ovld test)/default/usr/lib/xctest

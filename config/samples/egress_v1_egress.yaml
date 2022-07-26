@@ -3,6 +3,10 @@ kind: Egress
 metadata:
   name: egress-sample
 spec:
-  podSelector: 
-    app: usrsctp-server
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: default
+  podSelector:
+    matchLabels:
+      app: usrsctp-client
   egressIP: 13.0.0.2

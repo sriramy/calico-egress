@@ -31,3 +31,31 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - egress.github.com
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - egress.github.com
+  resources:
+  - namespaces/status
+  verbs:
+  - get
+- apiGroups:
+  - egress.github.com
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - egress.github.com
+  resources:
+  - pods/status
+  verbs:
+  - get

@@ -19,13 +19,17 @@ package controllers
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	egressv1 "github.com/sriramy/calico-egress/pkg/api/v1"
-	"github.com/vishvananda/netlink"
 )
 
 // EgressReconciler reconciles a Egress object
@@ -37,6 +41,10 @@ type EgressReconciler struct {
 //+kubebuilder:rbac:groups=egress.github.com,resources=egresses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=egress.github.com,resources=egresses/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=egress.github.com,resources=egresses/finalizers,verbs=update
+//+kubebuilder:rbac:groups=egress.github.com,resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups=egress.github.com,resources=pods/status,verbs=get
+//+kubebuilder:rbac:groups=egress.github.com,resources=namespaces,verbs=get;list;watch
+//+kubebuilder:rbac:groups=egress.github.com,resources=namespaces/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -48,9 +56,54 @@ type EgressReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
 func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := logf.FromContext(ctx)
 
-	// TODO(user): your logic here
+	log.Info("Reconciler", "try", req.NamespacedName)
+
+	egressObject := &egressv1.Egress{}
+	err := r.Get(ctx, req.NamespacedName, egressObject)
+	if errors.IsNotFound(err) {
+		log.Info("Reconciler", "skipping", "Cannot find egress object")
+		return ctrl.Result{}, nil
+	}
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	podSelector, err := metav1.LabelSelectorAsSelector(egressObject.Spec.PodSelector)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	nsObject := &corev1.Namespace{}
+	err = r.Get(ctx, types.NamespacedName{Name: req.Namespace}, nsObject)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	nsSelector, err := metav1.LabelSelectorAsSelector(egressObject.Spec.NamespaceSelector)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !nsSelector.Empty() && !nsSelector.Matches(labels.Set(nsObject.Labels)) {
+		log.Info("Reconciler", "skipping", "Egress object doesn't match the namespace selector")
+		return ctrl.Result{}, nil
+	}
+
+	pods := &corev1.PodList{}
+	err = r.List(ctx, pods, client.InNamespace(req.Namespace), client.MatchingLabelsSelector{Selector: podSelector})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Reconciler", "pods found", len(pods.Items))
+
+	if len(pods.Items) > 0 {
+		if egressObject.Status.PodList == nil {
+			egressObject.Status.PodList = make([]string, 1)
+		}
+		egressObject.Status.PodList[0] = pods.Items[0].Name + ":" + pods.Items[0].Name
+		r.Update(ctx, egressObject)
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -60,18 +113,4 @@ func (r *EgressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&egressv1.Egress{}).
 		Complete(r)
-}
-
-func (r *EgressReconciler) ensureDummyDevice(deviceName string) (netlink.Link, error) {
-	link, err := netlink.LinkByName(deviceName)
-	if err == nil {
-		return link, nil
-	}
-	dummy := &netlink.Dummy{
-		LinkAttrs: netlink.LinkAttrs{Name: deviceName},
-	}
-	if err = netlink.LinkAdd(dummy); err != nil {
-		return nil, err
-	}
-	return dummy, nil
 }

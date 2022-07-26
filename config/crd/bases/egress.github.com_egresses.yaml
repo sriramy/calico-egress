@@ -134,6 +134,14 @@ spec:
             type: object
           status:
             description: EgressStatus defines the observed state of Egress
+            properties:
+              podList:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                items:
+                  type: string
+                type: array
             type: object
         type: object
     served: true
