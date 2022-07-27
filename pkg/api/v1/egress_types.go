@@ -25,25 +25,24 @@ import (
 
 // EgressSpec defines the desired state of Egress
 type EgressSpec struct {
-	// Select Pods matched by this selector. If set with NamespaceSelector,
-	// Pods are matched from Namespaces matched by the NamespaceSelector;
-	// otherwise, Pods are matched from all Namespaces.
+	// Select Pods matched by this selector. Pods are always matched
+	// from the Namespace that the Egress is created in.
 	// +optional
 	PodSelector *metav1.LabelSelector `json:"podSelector,omitempty"`
-	// Select all Pods from Namespaces matched by this selector. If set with
-	// PodSelector, Pods are matched from Namespaces matched by the
-	// NamespaceSelector.
-	// +optional
-	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 	// EgressIP specifies the SNAT IP address for the selected workloads.
 	EgressIP string `json:"egressIP,omitempty"`
+}
+
+type Endpoint struct {
+	Name string `json:"name,omitempty"`
+	IP   string `json:"ip,omitempty"`
 }
 
 // EgressStatus defines the observed state of Egress
 type EgressStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	PodList []string `json:"podList,omitempty"`
+	Endpoints []Endpoint `json:"endpoints,omitempty"`
 }
 
 //+kubebuilder:object:root=true

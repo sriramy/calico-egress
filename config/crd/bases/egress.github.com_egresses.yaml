@@ -39,56 +39,9 @@ spec:
                 description: EgressIP specifies the SNAT IP address for the selected
                   workloads.
                 type: string
-              namespaceSelector:
-                description: Select all Pods from Namespaces matched by this selector.
-                  If set with PodSelector, Pods are matched from Namespaces matched
-                  by the NamespaceSelector.
-                properties:
-                  matchExpressions:
-                    description: matchExpressions is a list of label selector requirements.
-                      The requirements are ANDed.
-                    items:
-                      description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
-                        and values.
-                      properties:
-                        key:
-                          description: key is the label key that the selector applies
-                            to.
-                          type: string
-                        operator:
-                          description: operator represents a key's relationship to
-                            a set of values. Valid operators are In, NotIn, Exists
-                            and DoesNotExist.
-                          type: string
-                        values:
-                          description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
-                            array must be empty. This array is replaced during a strategic
-                            merge patch.
-                          items:
-                            type: string
-                          type: array
-                      required:
-                      - key
-                      - operator
-                      type: object
-                    type: array
-                  matchLabels:
-                    additionalProperties:
-                      type: string
-                    description: matchLabels is a map of {key,value} pairs. A single
-                      {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
-                      is "In", and the values array contains only "value". The requirements
-                      are ANDed.
-                    type: object
-                type: object
               podSelector:
-                description: Select Pods matched by this selector. If set with NamespaceSelector,
-                  Pods are matched from Namespaces matched by the NamespaceSelector;
-                  otherwise, Pods are matched from all Namespaces.
+                description: Select Pods matched by this selector. Pods are always
+                  matched from the Namespace that the Egress is created in.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -135,12 +88,17 @@ spec:
           status:
             description: EgressStatus defines the observed state of Egress
             properties:
-              podList:
+              endpoints:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
                 items:
-                  type: string
+                  properties:
+                    ip:
+                      type: string
+                    name:
+                      type: string
+                  type: object
                 type: array
             type: object
         type: object

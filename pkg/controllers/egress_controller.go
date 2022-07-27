@@ -22,12 +22,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	egressv1 "github.com/sriramy/calico-egress/pkg/api/v1"
 )
@@ -41,7 +43,7 @@ type EgressReconciler struct {
 //+kubebuilder:rbac:groups=egress.github.com,resources=egresses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=egress.github.com,resources=egresses/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=egress.github.com,resources=egresses/finalizers,verbs=update
-//+kubebuilder:rbac:groups=egress.github.com,resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups=egress.github.com,resources=pods,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups=egress.github.com,resources=pods/status,verbs=get
 //+kubebuilder:rbac:groups=egress.github.com,resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=egress.github.com,resources=namespaces/status,verbs=get
@@ -58,10 +60,8 @@ type EgressReconciler struct {
 func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	log.Info("Reconciler", "try", req.NamespacedName)
-
-	egressObject := &egressv1.Egress{}
-	err := r.Get(ctx, req.NamespacedName, egressObject)
+	egress := &egressv1.Egress{}
+	err := r.Get(ctx, req.NamespacedName, egress)
 	if errors.IsNotFound(err) {
 		log.Info("Reconciler", "skipping", "Cannot find egress object")
 		return ctrl.Result{}, nil
@@ -69,24 +69,9 @@ func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	podSelector, err := metav1.LabelSelectorAsSelector(egressObject.Spec.PodSelector)
+	podSelector, err := metav1.LabelSelectorAsSelector(egress.Spec.PodSelector)
 	if err != nil {
 		return ctrl.Result{}, err
-	}
-
-	nsObject := &corev1.Namespace{}
-	err = r.Get(ctx, types.NamespacedName{Name: req.Namespace}, nsObject)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	nsSelector, err := metav1.LabelSelectorAsSelector(egressObject.Spec.NamespaceSelector)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if !nsSelector.Empty() && !nsSelector.Matches(labels.Set(nsObject.Labels)) {
-		log.Info("Reconciler", "skipping", "Egress object doesn't match the namespace selector")
-		return ctrl.Result{}, nil
 	}
 
 	pods := &corev1.PodList{}
@@ -95,15 +80,17 @@ func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Reconciler", "pods found", len(pods.Items))
-
-	if len(pods.Items) > 0 {
-		if egressObject.Status.PodList == nil {
-			egressObject.Status.PodList = make([]string, 1)
-		}
-		egressObject.Status.PodList[0] = pods.Items[0].Name + ":" + pods.Items[0].Name
-		r.Update(ctx, egressObject)
+	if egress.Status.Endpoints != nil {
+		egress.Status.Endpoints = nil
 	}
+
+	for _, pod := range pods.Items {
+		egress.Status.Endpoints = append(egress.Status.Endpoints,
+			egressv1.Endpoint{Name: pod.Name, IP: pod.Status.PodIP})
+		pod.Annotations["egress.github.com/egressIP"] = egress.Spec.EgressIP
+		r.Update(ctx, &pod)
+	}
+	r.Status().Update(ctx, egress)
 
 	return ctrl.Result{}, nil
 }
@@ -112,5 +99,49 @@ func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *EgressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&egressv1.Egress{}).
+		Watches(
+			&source.Kind{Type: &corev1.Pod{}},
+			handler.EnqueueRequestsFromMapFunc(r.Map)).
 		Complete(r)
+}
+
+// Map the passed in pod object to any matching Egress objects
+func (r *EgressReconciler) Map(obj client.Object) []reconcile.Request {
+	requests := make([]reconcile.Request, 0)
+
+	for _, egress := range r.findMatchingEgresses(obj.GetNamespace(), obj.GetLabels()) {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      egress.Name,
+				Namespace: egress.Namespace,
+			},
+		})
+	}
+	return requests
+}
+
+func (r *EgressReconciler) findMatchingEgresses(namespace string, labels map[string]string) []egressv1.Egress {
+	// Find any Egress objects that match this pod.
+	allEgresses := &egressv1.EgressList{}
+	err := r.List(context.TODO(), allEgresses, client.InNamespace(namespace))
+	if err != nil {
+		logf.Log.Info("cannot find any egresses")
+		return nil
+	}
+
+	egresses := make([]egressv1.Egress, 0)
+	for _, egress := range allEgresses.Items {
+		podSelector, err := metav1.LabelSelectorAsMap(egress.Spec.PodSelector)
+		if err != nil {
+			logf.Log.Error(err, "cannot get pod selector")
+			return nil
+		}
+		for key, selector := range podSelector {
+			if label, found := labels[key]; found && label == selector {
+				egresses = append(egresses, egress)
+				break
+			}
+		}
+	}
+	return egresses
 }
