@@ -89,10 +89,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.EgressReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	if err = controllers.NewEgressReconciler(mgr).Setup(); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Egress")
 		os.Exit(1)
 	}

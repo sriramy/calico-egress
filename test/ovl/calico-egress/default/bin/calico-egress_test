@@ -62,6 +62,12 @@ cmd_tcase_deploy_kpng_pods() {
 	test_daemonset kpng-lb-proxier 180
 }
 
+cmd_tcase_check_controller_status() {
+	tcase "Wait until controller is up"
+	kubectl="kubectl -n calico-egress-system"
+	test_deployment calico-egress-controller-manager
+}
+
 cmd_tcase_test_conntrack() {
 	__timeout=40
 	__conns=4
