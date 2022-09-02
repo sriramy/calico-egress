@@ -71,6 +71,8 @@ func NewEgressReconciler(mgr ctrl.Manager) *EgressReconciler {
 func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
+	log.Info("Reconciler", "Egress", req.NamespacedName)
+
 	egress := &egressv1.Egress{}
 	err := r.Get(ctx, req.NamespacedName, egress)
 	if errors.IsNotFound(err) {
@@ -104,22 +106,16 @@ func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 func (r *EgressReconciler) setupEgress(ctx context.Context, key string, egress *egressv1.Egress, pods []corev1.Pod) error {
 	if _, ok := r.store[key]; !ok {
-		logf.FromContext(ctx).Info("setupEgress1: " + key)
 		r.store[key] = data{
 			egress:        egress,
 			podReconciler: NewPodReconciler(r.mgr, r),
 		}
 		r.store[key].podReconciler.Start(egress)
-	} else {
-		logf.FromContext(ctx).Info("setupEgress2: " + key)
 	}
 
-	if egress.Status.Endpoints != nil {
-		egress.Status.Endpoints = nil
-	}
-
+	var endpoints []egressv1.Endpoint
 	for _, pod := range pods {
-		egress.Status.Endpoints = append(egress.Status.Endpoints,
+		endpoints = append(endpoints,
 			egressv1.Endpoint{Name: pod.Name, IP: pod.Status.PodIP})
 		if pod.Annotations == nil {
 			pod.Annotations = make(map[string]string)
@@ -127,6 +123,7 @@ func (r *EgressReconciler) setupEgress(ctx context.Context, key string, egress *
 		pod.Annotations["egress.github.com/egressIP"] = egress.Spec.EgressIP
 		r.Update(ctx, &pod)
 	}
+	egress.Status.Endpoints = endpoints
 	return r.Status().Update(ctx, egress)
 }
 

@@ -62,6 +62,7 @@ cmd_test() {
 	start=starts
 	test "$__xterm" = "yes" && start=start
 	rm -f $XCLUSTER_TMP/cdrom.iso
+	rm -f captures/*
 
 	if test -n "$1"; then
 		for t in $@; do
