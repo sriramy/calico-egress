@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -71,7 +72,7 @@ func NewEgressReconciler(mgr ctrl.Manager) *EgressReconciler {
 func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
-	log.Info("Reconciler", "Egress", req.NamespacedName)
+	log.Info("EgressReconciler", "Name", req.NamespacedName)
 
 	egress := &egressv1.Egress{}
 	err := r.Get(ctx, req.NamespacedName, egress)
@@ -96,7 +97,7 @@ func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	err = r.setupEgress(ctx, req.NamespacedName.String(), egress, pods.Items)
+	err = r.setupEgress(ctx, req.NamespacedName, egress, pods.Items)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -104,7 +105,8 @@ func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *EgressReconciler) setupEgress(ctx context.Context, key string, egress *egressv1.Egress, pods []corev1.Pod) error {
+func (r *EgressReconciler) setupEgress(ctx context.Context, name types.NamespacedName, egress *egressv1.Egress, pods []corev1.Pod) error {
+	key := name.String()
 	if _, ok := r.store[key]; !ok {
 		r.store[key] = data{
 			egress:        egress,
@@ -124,7 +126,18 @@ func (r *EgressReconciler) setupEgress(ctx context.Context, key string, egress *
 		r.Update(ctx, &pod)
 	}
 	egress.Status.Endpoints = endpoints
-	return r.Status().Update(ctx, egress)
+	err := r.Status().Update(ctx, egress)
+	if err != nil {
+		// Try again if the object is already updated
+		if errors.IsAlreadyExists(err) {
+			err = r.Get(ctx, name, egress)
+			if err != nil {
+				egress.Status.Endpoints = endpoints
+				err = r.Status().Update(ctx, egress)
+			}
+		}
+	}
+	return err
 }
 
 // SetupWithManager sets up the controller with the Manager.
