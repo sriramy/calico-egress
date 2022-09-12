@@ -6,6 +6,24 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - get
+- apiGroups:
   - egress.github.com
   resources:
   - egresses
@@ -31,18 +49,3 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - egress.github.com
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - update
-  - watch
-- apiGroups:
-  - egress.github.com
-  resources:
-  - pods/status
-  verbs:
-  - get

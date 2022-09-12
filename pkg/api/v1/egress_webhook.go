@@ -24,7 +24,7 @@ import (
 )
 
 // log is for logging in this package.
-var egresslog = logf.Log.WithName("egress-resource")
+var egresslog = logf.Log.WithName("Egress")
 
 func (r *Egress) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).

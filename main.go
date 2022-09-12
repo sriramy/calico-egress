@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -49,6 +50,7 @@ func init() {
 }
 
 func main() {
+	var mainCtx context.Context
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -64,6 +66,7 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	mainCtx = ctrl.SetupSignalHandler()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -89,7 +92,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controllers.NewEgressReconciler(mgr).Setup(); err != nil {
+	if err = controllers.NewEgressReconciler(mainCtx, mgr).SetupWithManager(); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Egress")
 		os.Exit(1)
 	}
@@ -109,7 +112,7 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(mainCtx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
