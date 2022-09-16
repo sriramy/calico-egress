@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,23 +33,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/projectcalico/api/pkg/client/clientset_generated/clientset"
+
 	egressv1 "github.com/sriramy/calico-egress/pkg/api/v1"
 )
 
 // EgressReconciler reconciles a Egress object
 type EgressReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	ctx    context.Context
-	mgr    ctrl.Manager
+	Scheme       *runtime.Scheme
+	ctx          context.Context
+	mgr          ctrl.Manager
+	calicoClient *clientset.Clientset
 }
 
-func NewEgressReconciler(ctx context.Context, mgr ctrl.Manager) *EgressReconciler {
+func NewEgressReconciler(ctx context.Context, calicoClient *clientset.Clientset,
+	mgr ctrl.Manager) *EgressReconciler {
 	return &EgressReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		ctx:    ctx,
-		mgr:    mgr,
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		ctx:          ctx,
+		calicoClient: calicoClient,
+		mgr:          mgr,
 	}
 }
 
@@ -103,6 +109,15 @@ func (r *EgressReconciler) setupEgress(ctx context.Context, name types.Namespace
 	for _, pod := range pods {
 		endpoints = append(endpoints,
 			egressv1.Endpoint{Name: pod.Name, IP: pod.Status.PodIP})
+
+		list, err := r.calicoClient.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			panic(err)
+		}
+		for _, gnp := range list.Items {
+			fmt.Printf("%#v\n", gnp)
+		}
+
 		// if pod.Annotations == nil {
 		// 	pod.Annotations = make(map[string]string)
 		// }
