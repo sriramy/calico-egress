@@ -15,9 +15,11 @@ xc nsadd 1
 exit
 ```
 
-Enter the namespace
+Enter the namespace and set default paths
 ```
 ip netns exec ${USER}_xcluster1 bash
+export XCLUSTER_DIR=$HOME/xc/xcluster
+export CALICO_EGRESS_DIR=$HOME/code/calico-egress
 ```
 
 Initialize xcluster and add calico-egress to ovl path
@@ -40,6 +42,6 @@ export __kcfg=$XCLUSTER_DIR/config/$__kver
 ## Run tests
 ```
 cdo calico-egress
-./calico-egress build
-./calico-egress test
+./calico-egress.sh build
+./calico-egress.sh test
 ```
