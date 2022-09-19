@@ -24,7 +24,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -70,15 +70,11 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	mainCtx = ctrl.SetupSignalHandler()
 
-	// Create a new config based on kubeconfig file.
-	var kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	flag.Parse()
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	// Build a clientset based on the provided kubeconfig file.
 	cs, err := clientset.NewForConfig(config)
 	if err != nil {
 		panic(err)

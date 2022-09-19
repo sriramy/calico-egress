@@ -112,7 +112,9 @@ func (r *EgressReconciler) setupEgress(ctx context.Context, name types.Namespace
 
 		list, err := r.calicoClient.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), metav1.ListOptions{})
 		if err != nil {
-			panic(err)
+			if !errors.IsNotFound(err) {
+				panic(err)
+			}
 		}
 		for _, gnp := range list.Items {
 			fmt.Printf("%#v\n", gnp)
