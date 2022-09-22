@@ -24,7 +24,6 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/client-go/rest"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -33,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/projectcalico/api/pkg/client/clientset_generated/clientset"
 	egressv1 "github.com/sriramy/calico-egress/pkg/api/v1"
 	"github.com/sriramy/calico-egress/pkg/controllers"
 	//+kubebuilder:scaffold:imports
@@ -70,16 +68,6 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	mainCtx = ctrl.SetupSignalHandler()
 
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	cs, err := clientset.NewForConfig(config)
-	if err != nil {
-		panic(err)
-	}
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -104,7 +92,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controllers.NewEgressReconciler(mainCtx, cs, mgr).SetupWithManager(); err != nil {
+	if err = controllers.NewEgressReconciler(mainCtx, mgr).SetupWithManager(); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Egress")
 		os.Exit(1)
 	}

@@ -7,6 +7,7 @@ go 1.18
 require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.20.2
+	github.com/projectcalico/api v0.0.0-20220722155641-439a754a988b
 	github.com/vishvananda/netlink v1.1.0
 	k8s.io/api v0.25.0
 	k8s.io/apimachinery v0.25.0
@@ -53,7 +54,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/projectcalico/api v0.0.0-20220722155641-439a754a988b
 	github.com/prometheus/client_golang v1.13.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
@@ -86,3 +86,11 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+replace gopkg.in/tchap/go-patricia.v2 => github.com/tchap/go-patricia/v2 v2.3.1
+
+replace github.com/coreos/bbolt v1.3.6 => go.etcd.io/bbolt v1.3.6
+
+replace go.etcd.io/bbolt v1.3.6 => github.com/coreos/bbolt v1.3.6
+
+// replace github.com/projectcalico/api => /home/sriramy/code/api

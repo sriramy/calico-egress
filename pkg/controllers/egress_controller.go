@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -41,20 +41,17 @@ import (
 // EgressReconciler reconciles a Egress object
 type EgressReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	ctx          context.Context
-	mgr          ctrl.Manager
-	calicoClient *clientset.Clientset
+	Scheme *runtime.Scheme
+	ctx    context.Context
+	mgr    ctrl.Manager
 }
 
-func NewEgressReconciler(ctx context.Context, calicoClient *clientset.Clientset,
-	mgr ctrl.Manager) *EgressReconciler {
+func NewEgressReconciler(ctx context.Context, mgr ctrl.Manager) *EgressReconciler {
 	return &EgressReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		ctx:          ctx,
-		calicoClient: calicoClient,
-		mgr:          mgr,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		ctx:    ctx,
+		mgr:    mgr,
 	}
 }
 
@@ -105,26 +102,35 @@ func (r *EgressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 }
 
 func (r *EgressReconciler) setupEgress(ctx context.Context, name types.NamespacedName, egress *egressv1.Egress, pods []corev1.Pod) error {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+	calicoClient, err := clientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	felixConfigs, err := calicoClient.ProjectcalicoV3().FelixConfigurations().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		// if !errors.IsNotFound(err) {
+		return err
+		// }
+	}
+
+	for _, felixConfig := range felixConfigs.Items {
+		felixConfig.Spec.NATOutgoingAddress = egress.Spec.EgressIP
+		_, err = calicoClient.ProjectcalicoV3().FelixConfigurations().Update(ctx, &felixConfig, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
 	var endpoints []egressv1.Endpoint
 	for _, pod := range pods {
 		endpoints = append(endpoints,
 			egressv1.Endpoint{Name: pod.Name, IP: pod.Status.PodIP})
 
-		list, err := r.calicoClient.ProjectcalicoV3().GlobalNetworkPolicies().List(context.Background(), metav1.ListOptions{})
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				panic(err)
-			}
-		}
-		for _, gnp := range list.Items {
-			fmt.Printf("%#v\n", gnp)
-		}
-
-		// if pod.Annotations == nil {
-		// 	pod.Annotations = make(map[string]string)
-		// }
-		// pod.Annotations["egress.github.com/egressIP"] = egress.Spec.EgressIP
-		// r.Update(ctx, &pod)
 	}
 	egress.Status.Endpoints = endpoints
 	return r.Status().Update(ctx, egress)

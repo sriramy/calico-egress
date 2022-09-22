@@ -1,0 +1,313 @@
+# This is a tech-preview manifest which installs the Calico API server. Note that this manifest is liable to change
+# or be removed in future releases without further warning.
+#
+# Namespace and namespace-scoped resources.
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    name: calico-apiserver
+  name: calico-apiserver
+spec:
+
+---
+
+# Policy to ensure the API server isn't cut off. Can be modified, but ensure 
+# that the main API server is always able to reach the Calico API server.
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-apiserver
+  namespace: calico-apiserver
+spec:
+  podSelector:
+    matchLabels:
+      apiserver: "true"
+  ingress:
+  - ports:
+    - protocol: TCP
+      port: 5443
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: calico-api
+  namespace: calico-apiserver
+spec:
+  ports:
+  - name: apiserver
+    port: 443
+    protocol: TCP
+    targetPort: 5443
+  selector:
+    apiserver: "true"
+  type: ClusterIP
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    apiserver: "true"
+    k8s-app: calico-apiserver
+  name: calico-apiserver
+  namespace: calico-apiserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      apiserver: "true"
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        apiserver: "true"
+        k8s-app: calico-apiserver
+      name: calico-apiserver
+      namespace: calico-apiserver
+    spec:
+      containers:
+      - args:
+        - --secure-port=5443
+        - -v=5
+        env:
+        - name: DATASTORE_TYPE
+          value: kubernetes
+        image: docker.io/calico/apiserver:v3.24.1
+        livenessProbe:
+          httpGet:
+            path: /version
+            port: 5443
+            scheme: HTTPS
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        name: calico-apiserver
+        readinessProbe:
+          exec:
+            command:
+            - /code/filecheck
+          failureThreshold: 5
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        securityContext:
+          privileged: false
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /code/apiserver.local.config/certificates
+          name: calico-apiserver-certs
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      serviceAccount: calico-apiserver
+      serviceAccountName: calico-apiserver
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      volumes:
+      - name: calico-apiserver-certs
+        secret:
+          secretName: calico-apiserver-certs
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: calico-apiserver 
+  namespace: calico-apiserver 
+
+---
+
+# Cluster-scoped resources below here.
+apiVersion: v1
+data:
+  apiserver.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZEVENDQXZXZ0F3SUJBZ0lVSzE2Qmp4dXRiRW1PemZwSDhaSXdoR1FsYUljd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0FEQWVGdzB5TWpBNU1qSXhNRFV4TkRCYUZ3MHlNekE1TWpJeE1EVXhOREJhTUFBd2dnSWlNQTBHQ1NxRwpTSWIzRFFFQkFRVUFBNElDRHdBd2dnSUtBb0lDQVFENFVmbSsvdklzUTFGNHBNVHkwSG1PWVJMTWlzSURTSGt5CmdXbitmMnJYYmRnYlZtNEZvVHpOS3dQeVV0SlNzNWc4akhFL1YrSk9zQS82N1NxODg5MEFQSXlkYisxMHBFL04KODBYNWFFVXdkY0RKYUxKcDVmQlZzNDdtNEhDVjB4RGQ5Snp2Z3JLc21ZaTJSbTNoaWIvdWZSZzJISmRNRTVZTgpCZDdxa2lCTDB0TVE1b01UOWlzNC8yc200V0p4OGNDOWIxRitvNUdicy9IT2N0U3hESktKQmZ5S3hpZXNWZE1nCit0OHdtVGdSVS90bEVhL0VvSytnckk0c1pyN2NncU11aHNWVVhXUXVYSGJ2ZTRHTHQ4ZVVoUWRKMHpuaDNNeXQKbEtUZUtOQy9oSy95WVVyTVI0VzV6SGpBZFR1aVRISkV3SHRoNDdBTE0zckovczcwSDF6UUZPdEtaQ3k1dFhWTQo2YXk4KzJaT1hZVFlpOWt0WDRYUEs3aElVTi9ERExVdG84ZFdwZ3MybDV5SGRDbDdKWDVhQTlLOFN5ODNlM3NhCnF3QkJSS05UTHhSTTl2aWVHeUNvMnFnWFB0TjRreTBhdzZBcWV2cHRteGFERUdKUEF2NGdVM1VVY1M4RW1tUGsKSEkvMTBicU5hSlNZd2krd1VWbDdOVlp1NGVyNHB4UmFSN252b3k5cWVoQUxMU08wdDVkRlQ2M0RpT2tEM3JEbwpLdWc4KzBqejNaUnZVSUdySjBPckNRQzc0ZkM5ZnF4OFBWRHd4OUhUWWpTaTFoTlcvWmczMDY5eVRXaFFSWUR6CkNOT2lZekJ1QnlRbkFXTzUvNzVjUkxmdmR3ZlZKYXpiTnNVL2p4Zk9PU0lDOFB6cGxDWmpLUlhjQTNHakFhOEUKUzRrS2pHd1BkUUlEQVFBQm8zOHdmVEFkQmdOVkhRNEVGZ1FVb0k4M1B1M0dEWmk3T0ZwTGdPN0NBSjVPSjE0dwpId1lEVlIwakJCZ3dGb0FVb0k4M1B1M0dEWmk3T0ZwTGdPN0NBSjVPSjE0d0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QXFCZ05WSFJFRUl6QWhnaDlqWVd4cFkyOHRZWEJwTG1OaGJHbGpieTFoY0dselpYSjJaWEl1YzNaak1BMEcKQ1NxR1NJYjNEUUVCQ3dVQUE0SUNBUUFVNituTm9FcHgwL1JHTnptR1lTWDl6clg3Snhsemk4R2RDT1Nhb3psSAozZnZOM2pVeDR5TWpoUXFVbVdLak41V053Tmk4cjlibGdBMXdNYVA3MXFOWTNXSGZpeW5PR2pnS0VrUmFFbTBEClNjNStaZThwT09kM0llcmt5eWNwdUR1UTJJb2VoendFYkpvaHNEWWhnbTYxWjVrVS9vZ2k4dVViOWs3dkN6MVQKcVhFWTV6TUhEazU0Tk1GUTMrVkNoUjJidTZPbmlVaXl3L0J5N3E4b0dhenpRMFl5VVJPSHF4THQ2QmxMSWg5cAphcW0vaWRIWlQ4VkxTU2JNL0dkeER6d2RxTGQ5QXNuVzhhN09WR283ZlkySjdzbzVNbk1nUzRDMm5SVktpcStaCmdweEFDanVKOGNrL3dIS0NHaVJSVGdKdGI5aHpPcy9oYjZ6bnZ6YzhTR2M4YXljZGM4MVE3WHpZRDg2M0JTRkoKQzVkMHJaeFlSbTJ3NUdOZE5aN1RUMFVNVVVjZDYrNndOdXpzYncvL0taemVwQ2pwYzBZLy8rdFhmYzlhUTJvdQpTYzNhN2kzSHRab0o3SUN2QkxtcDVaZVVvbWJEY05lYWdtR2JZN0RTV09GNGxGd2VVTTRzSG9rKzZMNXQybmdLCkdxMEFvVDNzZG1aTnVZSktkUlNMNXhOY2dVU3U1TTRESU5aNTdVeHZIMWFsUGF3dWEwWTFqcmpHbDBvN3JpTTcKRXorbFdudmRLVDk1Snl5ZEJjQzQ1RS96SXd4di9yeVRjYXZKNU1RQU84NnZZTW44L25uWHZaelpLckVKeXV6VQpiZDhyVG9leDExNXM3Y1FBd0xacDF3N0ZiNWY4Rk1OajFDYXl1RWlyaStNdjY2RFFrdm96MmdkUDc2bUNJc3BUClNBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  apiserver.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUpRd0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQ1Mwd2dna3BBZ0VBQW9JQ0FRRDRVZm0rL3ZJc1ExRjQKcE1UeTBIbU9ZUkxNaXNJRFNIa3lnV24rZjJyWGJkZ2JWbTRGb1R6Tkt3UHlVdEpTczVnOGpIRS9WK0pPc0EvNgo3U3E4ODkwQVBJeWRiKzEwcEUvTjgwWDVhRVV3ZGNESmFMSnA1ZkJWczQ3bTRIQ1YweERkOUp6dmdyS3NtWWkyClJtM2hpYi91ZlJnMkhKZE1FNVlOQmQ3cWtpQkwwdE1RNW9NVDlpczQvMnNtNFdKeDhjQzliMUYrbzVHYnMvSE8KY3RTeERKS0pCZnlLeGllc1ZkTWcrdDh3bVRnUlUvdGxFYS9Fb0srZ3JJNHNacjdjZ3FNdWhzVlVYV1F1WEhidgplNEdMdDhlVWhRZEowem5oM015dGxLVGVLTkMvaEsveVlVck1SNFc1ekhqQWRUdWlUSEpFd0h0aDQ3QUxNM3JKCi9zNzBIMXpRRk90S1pDeTV0WFZNNmF5OCsyWk9YWVRZaTlrdFg0WFBLN2hJVU4vRERMVXRvOGRXcGdzMmw1eUgKZENsN0pYNWFBOUs4U3k4M2Uzc2Fxd0JCUktOVEx4Uk05dmllR3lDbzJxZ1hQdE40a3kwYXc2QXFldnB0bXhhRApFR0pQQXY0Z1UzVVVjUzhFbW1Qa0hJLzEwYnFOYUpTWXdpK3dVVmw3TlZadTRlcjRweFJhUjdudm95OXFlaEFMCkxTTzB0NWRGVDYzRGlPa0QzckRvS3VnOCswanozWlJ2VUlHckowT3JDUUM3NGZDOWZxeDhQVkR3eDlIVFlqU2kKMWhOVy9aZzMwNjl5VFdoUVJZRHpDTk9pWXpCdUJ5UW5BV081Lzc1Y1JMZnZkd2ZWSmF6Yk5zVS9qeGZPT1NJQwo4UHpwbENaaktSWGNBM0dqQWE4RVM0a0tqR3dQZFFJREFRQUJBb0lDQUFGVEl4djI1Ym9jZG9ydjIxV05xMkp3Cnk2TVU0YzZ2ZGxTaVJ5OHBXL29xamI3d1FjNFRrd3kzQTg2WjhXU1JHcVIzazBzOEZnVEtQQVlSREE2M0V6NnkKUjg3YjdPd1V1ZVlIUlNOSStpNWY5NWE1TXZITlZBNnVnMGFBQlEwcjg2QmJzdXhscWM0eGtKY1EwOXhjYXJ3QwpydEFvVStvUlR1dVFSVWFkNis0MTZTKzFkSElFU0FoWVV0OXZhQkxGU0tjQ2Nzdjd5bThEZDRyby96cW5BT2xFCjZ4djBSeXpWZ3pDMGRZcVRaRFRRVVFvRFVTZUM1cWpGYjNlTUFkOW1IeWxXbTZjbjZjWWNjdENiTDVWbFAxbksKNS9BbnU4UTJQWE9KU0V1TlF0V2xOUDBMUkcxNGx3VVV5eU94dFk4ZzVhNjhiZWhGSjE4M3ZFVGJKeWpOZHRjVQo1UHB3a2dxK2c1TWtML1FzdFpncDhHa0x3Qi80S2RxQkZsM3hzaEN6bGtycGN6UStvUlUwWENnMXBWWE9zbVFVCmNvREdEU05yQVQzUS9NVDlFYXozbEZrQk9uWmROMXpMRWFyb2t6UnIwWWc1S1lJWFMwMEZxUS9IRUZFS3Rya0cKS1hWZkRtNmQwbVd2ME9iN0s0SzZYYzZnblhQVFU1OU4zQ2pmcXhxKzNBbjJJdzlRVW9wcmR4SzkwM21NR3ZDZwppZzBwZUYrRTZQcDc1TlZhajNhZTVVVzkrb3M4eTZ3Q3pVQWROQkl5b21TdW5pbzcwZ2Z5THprZDdoUmRjSXJTCjdUbXhLL0kvL3VOZ2o1ZDgydXNLNG1IbGlDdmY1NVNEb2luL3oyQTFZeXBWVklkQ1FvRUZabStXdEJuVkxGSFgKUWEvdjlOTS9uNHdHUjV5TFQydlJBb0lCQVFEOVRHVFZ0T1hKMlQ3eG5aekRYd1U2VXZwK09HSkNwUHRDVXJsWQp5TEh2RWxmeFpoRU1PMTBvR3BYWmxNZ2tZZ1JlQXZWanNKRE4yd1Z2TWpRRWY3b2JLeHJBS1I1d2FKbmFDcThnCmg3ak1tQ0lTRUt3L3hXakJhZU12dkFtK09ib0xUYlFvQm1Ra0xQSm9BNW1RaS90TlRUczR1aXRwSjVWbzJPUHgKdzFUNXZzVlQ4aWVKbFlweXN4MElyU2N1Qkk2YXdpNThtTXJ3d2QvRzI2ajF1aGdlQnRVN212bjZ5VURJYnE3NApmYUdvZCs3OGpxYytmcjAxektKNkhmWi9kV1ErU3FhY3AyT2xTMC9hbmlWdDErbnJBWk5aa3cvZ1pRU0o1USs5Ci9BbnFLdk1GVHNXQzRBSURxWjA3YzFvd1pZdzJZVGlFMkU2UGxTSXhzTy9pZitFbEFvSUJBUUQ2OS8wOUo2Z2oKbmJPY253amNXWmdlOHFGVUZQdUthMm5VV0NmQzhBeEZaYWx3WExPRzNid1Z0c0F4b0NCTDlIclVWM0E4K1U3MgpTdlRBMnJlZmN1L1NoZmIvbEdBaFFia0pVMG14bnVJQnFiSDlhTDdFSHVIajBmb3Z0ZVJhRTlXMFVIb2VyWmhhCk5PWHJ6SkZXcks0Sm9NQXJ1UFhFUW1wMlROODlyZktvdVY3aWZRVWJhRXFxRGw5WmtvTkh3UTVGcjlKUGZBZ00KVkp0NU84NlA2OFIvNHVnekhPaU9FMHlKOXh5MjA3eFZxZDFLUUFNUVo2RGp4TFdOemdYbldtbFpuUkljQWNGYQo3SkpNZUVaSVh3elBXa0R4MlN1emdTcm92azliMmdqQStUNEhrVEJ2QXhkczdsNUVna1hKTU9IYm1EWUhyVW9LCmVGbldpZnZHNE93UkFvSUJBSDBDTHVHcG5aNjRzTy9kc1hoYWRPSU1BY1E1WDRVMGx5eHNWejBTRDM3RnR0RlUKWmlWN1JzWjhHR2lCblNVWG1zQXJCYUJsaTVHTS9tbWFoVUdUSis0d244c21mL2RLS0dRTDBkSmtLVGdQL1FDZAphZVV2TUR3RVhqTTR3alkzbHpIczczU3hjc3JIdy9yQmpCQmloV3ZwS2NrZFdEOVZZYytVK3lwZUZKb05KS1lCClpMSHFNNkhYOUFSTU1JSHRqZE9pOGY1Y0NndzRJcENwNkFFZURya0M5a21zZXFMaW9DNUxNZDlCWVg4YmNiOEQKU0ZiM2hibi9mRkI0YVNjT2NLS3RoUHpiUDdwY0tOVGtKK1RHSXBQdyt4L0NESnZhUHhzdkNVM2lEYUtiLzhRbQoxQ043R29Oa09rMFU2UFhwcUFGT2llNUdNcjk2QXA0empMQmtIR0VDZ2dFQkFOM3BPNzNBZkJjS0VkQnlleVpECi9wT1czUG41RjdaOFpmYUNBSjZKSFlDYmRPaEt2OStIM3hDZ0tHOTQ5RFhWTm1yZDZmdXdRcGJiRG5JY3MzTEUKOGJRSUNyQlJKWE1pcHhmTTBvUEJSbnhMN1h0eURBUmtmajZ3NDNVZWM0MEdydGNpdGVpOGZOTitwTE1NanBMQwpXNTFkeTY2ZGZJc09ZdzY1eUVmRXNLVnFTN0VlOU00WU9MVUh3bDMwaENxRlZUWmZVaXBBTk9tYVFtTS9jOVdrCmxucXlTN2t1WForTEJ3bVRQSXVZeTVZL2ZkRnlxb0x0N3NDWHBpVitQNUFqVExZVmdmYkx3b25BVjFoUW5Xek8KeHdmdCtURWdZMWowNU5rcHRnZzAwYnE0YUpYT1ZySkNYSXRRZG9CRFpLdVNrcE5Xa3FmVkhYd0drUUYzdnU1Swo0ZEVDZ2dFQkFMSlA0T0x0S3BhVXEyVk5aQzU4eU1lTGVRRmE5TStJMDFZdXB1UC9wUlk2UEhSVlBDL3FLWGV0Cnh5WkpDODVLbGV3VGZjelRBQUs5dkZobzUrODNCYUNWWjg3NkUvdG0wK1hGVmFNb3REWithb3lRbUJGbDVoNkoKMVRMK1N3cTFkYk5DQWZCeFJkc3IwaXAvTVdaNHVGcElmbFRMelhUZ3FPQTk3OXR5c2VYaSsxS09IK2x2S3N4cAp1eTg5VDdoZUNvdWhHdlZXNEQwZHJXYzlkdkNaUXBrQlJod3lwaVN0bXZxY0k5dk1lSDQ5R3NZb2tkK2VsTHRPClBLUVBYU0ZsVURXUnFnMUdLYytta0hZTVRWTGI5MEpjcFZoL3pjUFlKTEd3NWkzbTQyQjNRRDcxWFlPZVBQbnkKNjBxckZ6M2UyNjkydmg2VGR1RGE1UGtmZTJtVW5VQT0KLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=
+kind: Secret
+metadata:
+  name: calico-apiserver-certs
+  namespace: calico-apiserver
+type: Opaque
+--- 
+
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v3.projectcalico.org
+spec:
+  caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZEVENDQXZXZ0F3SUJBZ0lVSzE2Qmp4dXRiRW1PemZwSDhaSXdoR1FsYUljd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0FEQWVGdzB5TWpBNU1qSXhNRFV4TkRCYUZ3MHlNekE1TWpJeE1EVXhOREJhTUFBd2dnSWlNQTBHQ1NxRwpTSWIzRFFFQkFRVUFBNElDRHdBd2dnSUtBb0lDQVFENFVmbSsvdklzUTFGNHBNVHkwSG1PWVJMTWlzSURTSGt5CmdXbitmMnJYYmRnYlZtNEZvVHpOS3dQeVV0SlNzNWc4akhFL1YrSk9zQS82N1NxODg5MEFQSXlkYisxMHBFL04KODBYNWFFVXdkY0RKYUxKcDVmQlZzNDdtNEhDVjB4RGQ5Snp2Z3JLc21ZaTJSbTNoaWIvdWZSZzJISmRNRTVZTgpCZDdxa2lCTDB0TVE1b01UOWlzNC8yc200V0p4OGNDOWIxRitvNUdicy9IT2N0U3hESktKQmZ5S3hpZXNWZE1nCit0OHdtVGdSVS90bEVhL0VvSytnckk0c1pyN2NncU11aHNWVVhXUXVYSGJ2ZTRHTHQ4ZVVoUWRKMHpuaDNNeXQKbEtUZUtOQy9oSy95WVVyTVI0VzV6SGpBZFR1aVRISkV3SHRoNDdBTE0zckovczcwSDF6UUZPdEtaQ3k1dFhWTQo2YXk4KzJaT1hZVFlpOWt0WDRYUEs3aElVTi9ERExVdG84ZFdwZ3MybDV5SGRDbDdKWDVhQTlLOFN5ODNlM3NhCnF3QkJSS05UTHhSTTl2aWVHeUNvMnFnWFB0TjRreTBhdzZBcWV2cHRteGFERUdKUEF2NGdVM1VVY1M4RW1tUGsKSEkvMTBicU5hSlNZd2krd1VWbDdOVlp1NGVyNHB4UmFSN252b3k5cWVoQUxMU08wdDVkRlQ2M0RpT2tEM3JEbwpLdWc4KzBqejNaUnZVSUdySjBPckNRQzc0ZkM5ZnF4OFBWRHd4OUhUWWpTaTFoTlcvWmczMDY5eVRXaFFSWUR6CkNOT2lZekJ1QnlRbkFXTzUvNzVjUkxmdmR3ZlZKYXpiTnNVL2p4Zk9PU0lDOFB6cGxDWmpLUlhjQTNHakFhOEUKUzRrS2pHd1BkUUlEQVFBQm8zOHdmVEFkQmdOVkhRNEVGZ1FVb0k4M1B1M0dEWmk3T0ZwTGdPN0NBSjVPSjE0dwpId1lEVlIwakJCZ3dGb0FVb0k4M1B1M0dEWmk3T0ZwTGdPN0NBSjVPSjE0d0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QXFCZ05WSFJFRUl6QWhnaDlqWVd4cFkyOHRZWEJwTG1OaGJHbGpieTFoY0dselpYSjJaWEl1YzNaak1BMEcKQ1NxR1NJYjNEUUVCQ3dVQUE0SUNBUUFVNituTm9FcHgwL1JHTnptR1lTWDl6clg3Snhsemk4R2RDT1Nhb3psSAozZnZOM2pVeDR5TWpoUXFVbVdLak41V053Tmk4cjlibGdBMXdNYVA3MXFOWTNXSGZpeW5PR2pnS0VrUmFFbTBEClNjNStaZThwT09kM0llcmt5eWNwdUR1UTJJb2VoendFYkpvaHNEWWhnbTYxWjVrVS9vZ2k4dVViOWs3dkN6MVQKcVhFWTV6TUhEazU0Tk1GUTMrVkNoUjJidTZPbmlVaXl3L0J5N3E4b0dhenpRMFl5VVJPSHF4THQ2QmxMSWg5cAphcW0vaWRIWlQ4VkxTU2JNL0dkeER6d2RxTGQ5QXNuVzhhN09WR283ZlkySjdzbzVNbk1nUzRDMm5SVktpcStaCmdweEFDanVKOGNrL3dIS0NHaVJSVGdKdGI5aHpPcy9oYjZ6bnZ6YzhTR2M4YXljZGM4MVE3WHpZRDg2M0JTRkoKQzVkMHJaeFlSbTJ3NUdOZE5aN1RUMFVNVVVjZDYrNndOdXpzYncvL0taemVwQ2pwYzBZLy8rdFhmYzlhUTJvdQpTYzNhN2kzSHRab0o3SUN2QkxtcDVaZVVvbWJEY05lYWdtR2JZN0RTV09GNGxGd2VVTTRzSG9rKzZMNXQybmdLCkdxMEFvVDNzZG1aTnVZSktkUlNMNXhOY2dVU3U1TTRESU5aNTdVeHZIMWFsUGF3dWEwWTFqcmpHbDBvN3JpTTcKRXorbFdudmRLVDk1Snl5ZEJjQzQ1RS96SXd4di9yeVRjYXZKNU1RQU84NnZZTW44L25uWHZaelpLckVKeXV6VQpiZDhyVG9leDExNXM3Y1FBd0xacDF3N0ZiNWY4Rk1OajFDYXl1RWlyaStNdjY2RFFrdm96MmdkUDc2bUNJc3BUClNBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  group: projectcalico.org
+  groupPriorityMinimum: 1500
+  service:
+    name: calico-api
+    namespace: calico-apiserver
+    port: 443
+  version: v3
+  versionPriority: 200
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: calico-crds
+rules:
+- apiGroups:
+  - extensions
+  - networking.k8s.io
+  - ""
+  resources:
+  - networkpolicies
+  - nodes
+  - namespaces
+  - pods
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - crd.projectcalico.org
+  resources:
+  - globalnetworkpolicies
+  - networkpolicies
+  - clusterinformations
+  - hostendpoints
+  - globalnetworksets
+  - networksets
+  - bgpconfigurations
+  - bgppeers
+  - felixconfigurations
+  - kubecontrollersconfigurations
+  - ippools
+  - ipreservations
+  - ipamblocks
+  - blockaffinities
+  - caliconodestatuses
+  - ipamconfigs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - policy
+  resourceNames:
+  - calico-apiserver
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: calico-extension-apiserver-auth-access
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - extension-apiserver-authentication
+  resources:
+  - configmaps
+  verbs:
+  - list
+  - watch
+  - get
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  - clusterrolebindings
+  - roles
+  - rolebindings
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: calico-webhook-reader
+rules:
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  - validatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: calico-apiserver-access-crds
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: calico-crds
+subjects:
+- kind: ServiceAccount
+  name: calico-apiserver
+  namespace: calico-apiserver
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: calico-apiserver-delegate-auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: calico-apiserver
+  namespace: calico-apiserver
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: calico-apiserver-webhook-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: calico-webhook-reader
+subjects:
+- kind: ServiceAccount
+  name: calico-apiserver
+  namespace: calico-apiserver
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: calico-extension-apiserver-auth-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: calico-extension-apiserver-auth-access
+subjects:
+- kind: ServiceAccount
+  name: calico-apiserver
+  namespace: calico-apiserver
