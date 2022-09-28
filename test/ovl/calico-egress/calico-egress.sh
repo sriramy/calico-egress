@@ -99,6 +99,7 @@ test_start() {
 	make -C $topdir deploy
 
 	otc 221 start_server
+	otc 2 "check_discard_init"
 
 	otc 201 vip_ecmp_route
 	otc 202 "vip_ecmp_route 2"
@@ -109,9 +110,8 @@ test_start() {
 	otc 2 deploy_client_pods
 	otc 2 "start_tcpdump_proc_ns usrsctpt"
 
-	tlog "Sleep for 60 seconds for the client to finish"
-	sleep 60
-	#otc 1 start_client_interactive
+	otc 2 "test_conntrack 2"
+	otc 2 "test_conntrack 0"
 
 	otc 2 stop_all_tcpdump
 	otc 221 stop_all_tcpdump
